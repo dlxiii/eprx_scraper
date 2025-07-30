@@ -113,7 +113,17 @@ class EPRX:
             self.page.wait_for_load_state("networkidle")
 
     def results(self, debug: bool = False, year: int | None = None, report_type: str = "final"):
-        """Navigate to the results page for a specific year."""
+        """Navigate to the results page for a specific year and download ZIP files.
+
+        Parameters
+        ----------
+        debug:
+            Launch the browser in non headless mode for debugging.
+        year:
+            Target fiscal year. Defaults to the current year.
+        report_type:
+            Either ``"final"`` for 確報値 or ``"prompt"`` for 速報値.
+        """
         if year is None:
             year = date.today().year
         self._navigate_results_page(
@@ -123,8 +133,10 @@ class EPRX:
             item="results",
             report_type=report_type,
         )
-        if report_type == "final":
-            self._download_year_zips(str(year))
+        # Download all ZIP files listed on the selected year page for the
+        # specified report type. Both the "final" (確報値) and "prompt"
+        # (速報値) pages expose ZIP links, so handle them uniformly.
+        self._download_year_zips(str(year))
         if debug:
             print(f"Navigated to: {self.page.url}")
         return self.page
@@ -220,7 +232,10 @@ class EPRX:
 
 def main():
     scraper = EPRX()
-    scraper.results_direct(debug=True, year=date.today().year, report_type="final")
+    # Example usage: navigate to the latest fiscal year's results page
+    # and download all available ZIP files. "final" downloads 確報値 while
+    # "prompt" downloads 速報値.
+    scraper.results(debug=True, year=date.today().year, report_type="final")
     scraper.close_session()
 
 
