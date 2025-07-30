@@ -329,5 +329,5 @@ if __name__ == "__main__":
     fiscal_year = date.today().year if date.today().month >= 4 else date.today().year - 1
 
     scraper = EPRX()
-    scraper.results(debug=False, year=2021)
+    scraper.results(debug=False, year=fiscal_year)
     scraper.close_session()
