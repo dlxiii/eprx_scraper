@@ -139,6 +139,8 @@ class EPRX:
         self._download_year_zips(str(year))
         # Extract the downloaded ZIP files and remove the archives
         self._extract_downloaded_zips("zip")
+        # Convert extracted CSV files from Shift-JIS to UTF-8
+        self._convert_csv_encoding("zip")
         if debug:
             print(f"Navigated to: {self.page.url}")
         return self.page
@@ -257,6 +259,25 @@ class EPRX:
         for filename in os.listdir(directory):
             if filename.lower().endswith(".zip"):
                 self._extract_zip(os.path.join(directory, filename))
+
+    def _convert_csv_encoding(
+        self, directory: str = "zip", src_enc: str = "shift_jis", dst_enc: str = "utf-8"
+    ) -> None:
+        """Recursively convert CSV files from ``src_enc`` to ``dst_enc``."""
+        if not os.path.isdir(directory):
+            return
+        for root, _, files in os.walk(directory):
+            for name in files:
+                if name.lower().endswith(".csv"):
+                    path = os.path.join(root, name)
+                    try:
+                        with open(path, "r", encoding=src_enc, errors="ignore") as f:
+                            data = f.read()
+                        with open(path, "w", encoding=dst_enc) as f:
+                            f.write(data)
+                        print(f"Converted: {path}")
+                    except Exception as e:
+                        print(f"Failed to convert {path}: {e}")
 
     def close_session(self):
         if self.browser:
