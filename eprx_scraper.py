@@ -73,12 +73,12 @@ class EPRX:
         except Exception:
             self.page.goto(self.results_page)
         self.page.wait_for_load_state("networkidle")
-        if "agree_results.php" in self.page.url:
+        if self.page.locator('input[name="check"]').count() > 0:
             try:
                 self.page.check('input[name="check"]')
             except Exception:
                 pass
-            self.page.click('input[name="submit"]')
+            self.page.click('input[type="submit"]')
             self.page.wait_for_load_state("networkidle")
 
     def results(self, debug: bool = False):
