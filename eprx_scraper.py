@@ -73,12 +73,14 @@ class EPRX:
         except Exception:
             self.page.goto(self.results_page)
         self.page.wait_for_load_state("networkidle")
-        if self.page.locator('input[name="check"]').count() > 0:
+        checkbox = self.page.locator('input[name="check"]')
+        if checkbox.count() > 0:
             try:
-                self.page.check('input[name="check"]')
+                checkbox.check(force=True)
             except Exception:
-                pass
-            self.page.click('input[type="submit"]')
+                # Fallback to clicking the label if checkbox is hidden
+                self.page.locator('label.agreeCheck__checkbox').click()
+            self.page.locator('input[type="submit"][name="submit"]').click()
             self.page.wait_for_load_state("networkidle")
 
     def results(self, debug: bool = False):
