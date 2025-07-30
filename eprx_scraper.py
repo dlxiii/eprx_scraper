@@ -109,13 +109,6 @@ class EPRX:
         section = self.page.locator(f'h2:has-text("{table_title}")')
         section.wait_for()
 
-        if date:
-            try:
-                section.get_by_role("link", name=f"{date}年度").click()
-            except Exception:
-                section.locator(f'text="{date}年度"').first.click()
-            self.page.wait_for_load_state("networkidle")
-
     def results(
         self, debug: bool = False, year: int | None = None, report_type: str = "final"
     ):
