@@ -2,6 +2,7 @@ import os
 from datetime import date
 from urllib.parse import urljoin
 import zipfile
+import shutil
 
 import requests
 import urllib3
@@ -244,6 +245,20 @@ class EPRX:
             with zipfile.ZipFile(path, "r") as zf:
                 zf.extractall(extract_dir)
             print(f"Extracted: {path} -> {extract_dir}")
+            # Flatten nested folders with the same name as the archive
+            base_name = os.path.basename(extract_dir)
+            while True:
+                entries = os.listdir(extract_dir)
+                if len(entries) != 1:
+                    break
+                nested = os.path.join(extract_dir, entries[0])
+                if not (os.path.isdir(nested) and os.path.basename(nested) == base_name):
+                    break
+                temp = nested + "_tmp"
+                os.rename(nested, temp)
+                for item in os.listdir(temp):
+                    shutil.move(os.path.join(temp, item), os.path.join(extract_dir, item))
+                os.rmdir(temp)
         except Exception as e:
             print(f"Failed to extract {path}: {e}")
             return
