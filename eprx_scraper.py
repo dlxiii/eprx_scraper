@@ -1,6 +1,7 @@
 import os
 from datetime import date
 from urllib.parse import urljoin
+import zipfile
 
 import requests
 import urllib3
@@ -136,6 +137,8 @@ class EPRX:
         # specified report type. Both the "final" (確報値) and "prompt"
         # (速報値) pages expose ZIP links, so handle them uniformly.
         self._download_year_zips(str(year))
+        # Extract the downloaded ZIP files and remove the archives
+        self._extract_downloaded_zips("zip")
         if debug:
             print(f"Navigated to: {self.page.url}")
         return self.page
@@ -229,6 +232,31 @@ class EPRX:
                 print(f"Downloaded: {out_path}")
             except Exception as e:
                 print(f"Failed to download file: {e}")
+
+    def _extract_zip(self, path: str, remove_archive: bool = True) -> None:
+        """Extract a ZIP file to a folder with the same base name."""
+        extract_dir = os.path.splitext(path)[0]
+        os.makedirs(extract_dir, exist_ok=True)
+        try:
+            with zipfile.ZipFile(path, "r") as zf:
+                zf.extractall(extract_dir)
+            print(f"Extracted: {path} -> {extract_dir}")
+        except Exception as e:
+            print(f"Failed to extract {path}: {e}")
+            return
+        if remove_archive:
+            try:
+                os.remove(path)
+            except Exception as e:
+                print(f"Failed to remove {path}: {e}")
+
+    def _extract_downloaded_zips(self, directory: str = "zip") -> None:
+        """Extract all ZIP files in the given directory."""
+        if not os.path.isdir(directory):
+            return
+        for filename in os.listdir(directory):
+            if filename.lower().endswith(".zip"):
+                self._extract_zip(os.path.join(directory, filename))
 
     def close_session(self):
         if self.browser:
