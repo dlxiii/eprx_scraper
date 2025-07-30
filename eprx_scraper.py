@@ -285,17 +285,9 @@ class EPRX:
         if self.playwright:
             self.playwright.stop()
 
-
-def main():
-    scraper = EPRX()
-    # Example usage: navigate to the latest fiscal year's results page
-    # and download all available ZIP files. "final" downloads 確報値 while
-    # "prompt" downloads 速報値.
-    # Determine the fiscal year, starting in April
+if __name__ == "__main__":
     fiscal_year = date.today().year if date.today().month >= 4 else date.today().year - 1
+
+    scraper = EPRX()
     scraper.results(debug=False, year=fiscal_year)
     scraper.close_session()
-
-
-if __name__ == "__main__":
-    main()
