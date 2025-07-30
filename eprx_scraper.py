@@ -1,10 +1,11 @@
 import os
+from datetime import date
+from urllib.parse import urljoin
+
 import requests
 import urllib3
-from urllib.parse import urljoin
-from datetime import date
-from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
+from playwright.sync_api import sync_playwright
 
 BASE_URL = "https://www.eprx.or.jp/information/"
 RESULTS_PAGE = urljoin(BASE_URL, "results.php")
@@ -44,7 +45,9 @@ class EPRX:
         )
         return browser
 
-    def _download_zip(self, dir_name: str, date: str, out_path: str, overwrite: bool = True):
+    def _download_zip(
+        self, dir_name: str, date: str, out_path: str, overwrite: bool = True
+    ):
         date_str = date.replace("/", "")
         file_name = f"{dir_name}_{date_str}.zip"
         url = urljoin(self.results_page, file_name)
@@ -93,26 +96,29 @@ class EPRX:
                 checkbox.check(force=True)
             except Exception:
                 # Fallback to clicking the label if checkbox is hidden
-                self.page.locator('label.agreeCheck__checkbox').click()
+                self.page.locator("label.agreeCheck__checkbox").click()
             self.page.locator('input[type="submit"][name="submit"]').click()
             self.page.wait_for_load_state("networkidle")
 
-        # Select results type (速報値 or 確報値)
-        target_link = "確報値" if report_type == "final" else "速報値"
-        try:
-            self.page.get_by_role("link", name=target_link).click()
-        except Exception:
-            self.page.locator(f'text="{target_link}"').first.click()
-        self.page.wait_for_load_state("networkidle")
+        # Locate the results table directly without clicking the link
+        table_title = (
+            "取引結果・連系線確保量結果ダウンロード（確報値）"
+            if report_type == "final"
+            else "取引結果・連系線確保量結果ダウンロード（速報値）"
+        )
+        section = self.page.locator(f'h2:has-text("{table_title}")')
+        section.wait_for()
 
         if date:
             try:
-                self.page.get_by_role("link", name=f"{date}年度").click()
+                section.get_by_role("link", name=f"{date}年度").click()
             except Exception:
-                self.page.locator(f'text="{date}年度"').first.click()
+                section.locator(f'text="{date}年度"').first.click()
             self.page.wait_for_load_state("networkidle")
 
-    def results(self, debug: bool = False, year: int | None = None, report_type: str = "final"):
+    def results(
+        self, debug: bool = False, year: int | None = None, report_type: str = "final"
+    ):
         """Navigate to the results page for a specific year and download ZIP files.
 
         Parameters
@@ -149,7 +155,9 @@ class EPRX:
         r.raise_for_status()
         return r.text
 
-    def parse_links(self, html: str, year: str | None = None, report_type: str = "final") -> list[str]:
+    def parse_links(
+        self, html: str, year: str | None = None, report_type: str = "final"
+    ) -> list[str]:
         """Parse ZIP file links from HTML."""
         table_title = (
             "取引結果・連系線確保量結果ダウンロード（確報値）"
@@ -174,7 +182,9 @@ class EPRX:
                 links.append(urljoin(self.base_url, a["href"]))
         return links
 
-    def download_files(self, links: list[str], out_dir: str = "zip", overwrite: bool = True) -> None:
+    def download_files(
+        self, links: list[str], out_dir: str = "zip", overwrite: bool = True
+    ) -> None:
         os.makedirs(out_dir, exist_ok=True)
         for url in links:
             filename = os.path.join(out_dir, os.path.basename(url))
@@ -192,7 +202,9 @@ class EPRX:
             except Exception as exc:
                 print(f"Error downloading {url}: {exc}")
 
-    def results_direct(self, debug: bool = False, year: int | None = None, report_type: str = "final") -> None:
+    def results_direct(
+        self, debug: bool = False, year: int | None = None, report_type: str = "final"
+    ) -> None:
         """Directly download result ZIP files without using Playwright."""
         if year is None:
             year = date.today().year
@@ -209,7 +221,9 @@ class EPRX:
 
     def _download_year_zips(self, year: str) -> None:
         """Download all ZIP files listed for the specified year."""
-        links = self.page.locator('a[href$=".zip"]')
+        # Restrict search to the table row that corresponds to the target year
+        row = self.page.locator(f'tr:has-text("{year}年度")')
+        links = row.locator('a[href$=".zip"]')
         count = links.count()
         os.makedirs("zip", exist_ok=True)
         for i in range(count):
