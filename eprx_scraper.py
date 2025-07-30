@@ -73,10 +73,17 @@ class EPRX:
         except Exception:
             self.page.goto(self.results_page)
         self.page.wait_for_load_state("networkidle")
+        if "agree_results.php" in self.page.url:
+            try:
+                self.page.check('input[name="check"]')
+            except Exception:
+                pass
+            self.page.click('input[name="submit"]')
+            self.page.wait_for_load_state("networkidle")
 
     def results(self, debug: bool = False):
         """Navigate to the results page for manual inspection."""
-        self._navigate_results_page("", debug, accept_downloads=False)
+        self._navigate_results_page("", debug, accept_downloads=True, item="results")
         if debug:
             print(f"Navigated to: {self.page.url}")
         return self.page
