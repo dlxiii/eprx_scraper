@@ -63,6 +63,7 @@ class EPRX:
         debug: bool = False,
         accept_downloads: bool = False,
         item: str = "results",
+        report_type: str = "final",
     ) -> None:
         self.playwright = sync_playwright().start()
         self.browser = self._launch_browser(self.playwright, debug)
@@ -84,6 +85,14 @@ class EPRX:
             self.page.locator('input[type="submit"][name="submit"]').click()
             self.page.wait_for_load_state("networkidle")
 
+        # Select results type (速報値 or 確報値)
+        target_link = "確報値" if report_type == "final" else "速報値"
+        try:
+            self.page.get_by_role("link", name=target_link).click()
+        except Exception:
+            self.page.locator(f'text="{target_link}"').first.click()
+        self.page.wait_for_load_state("networkidle")
+
         if date:
             try:
                 self.page.get_by_role("link", name=f"{date}年度").click()
@@ -91,14 +100,38 @@ class EPRX:
                 self.page.locator(f'text="{date}年度"').first.click()
             self.page.wait_for_load_state("networkidle")
 
-    def results(self, debug: bool = False, year: int | None = None):
+    def results(self, debug: bool = False, year: int | None = None, report_type: str = "final"):
         """Navigate to the results page for a specific year."""
         if year is None:
             year = date.today().year
-        self._navigate_results_page(str(year), debug, accept_downloads=True, item="results")
+        self._navigate_results_page(
+            str(year),
+            debug,
+            accept_downloads=True,
+            item="results",
+            report_type=report_type,
+        )
+        if report_type == "final":
+            self._download_year_zips(str(year))
         if debug:
             print(f"Navigated to: {self.page.url}")
         return self.page
+
+    def _download_year_zips(self, year: str) -> None:
+        """Download all ZIP files listed for the specified year."""
+        links = self.page.locator('a[href$=".zip"]')
+        count = links.count()
+        os.makedirs("zip", exist_ok=True)
+        for i in range(count):
+            try:
+                with self.page.expect_download() as download_info:
+                    links.nth(i).click()
+                download = download_info.value
+                out_path = os.path.join("zip", download.suggested_filename)
+                download.save_as(out_path)
+                print(f"Downloaded: {out_path}")
+            except Exception as e:
+                print(f"Failed to download file: {e}")
 
     def close_session(self):
         if self.browser:
@@ -109,7 +142,7 @@ class EPRX:
 
 def main():
     scraper = EPRX()
-    scraper.results(debug=True, year=date.today().year)
+    scraper.results(debug=True, year=date.today().year, report_type="final")
     scraper.close_session()
 
 
