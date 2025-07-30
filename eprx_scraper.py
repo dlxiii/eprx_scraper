@@ -291,7 +291,9 @@ def main():
     # Example usage: navigate to the latest fiscal year's results page
     # and download all available ZIP files. "final" downloads 確報値 while
     # "prompt" downloads 速報値.
-    scraper.results(debug=True, year=date.today().year, report_type="final")
+    # Determine the fiscal year, starting in April
+    fiscal_year = date.today().year if date.today().month >= 4 else date.today().year - 1
+    scraper.results(debug=False, year=fiscal_year)
     scraper.close_session()
 
 
