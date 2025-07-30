@@ -7,6 +7,7 @@ import requests
 import urllib3
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
+import chardet
 
 BASE_URL = "https://www.eprx.or.jp/information/"
 RESULTS_PAGE = urljoin(BASE_URL, "results.php")
@@ -263,21 +264,45 @@ class EPRX:
     def _convert_csv_encoding(
         self, directory: str = "zip", src_enc: str = "shift_jis", dst_enc: str = "utf-8"
     ) -> None:
-        """Recursively convert CSV files from ``src_enc`` to ``dst_enc``."""
+        """Recursively convert CSV files from ``src_enc`` to ``dst_enc``.
+
+        Files already encoded in UTF-8 will be skipped to avoid double
+        conversion. Encoding detection is performed using ``chardet``.
+        """
         if not os.path.isdir(directory):
             return
+
+        def _detect_encoding(file_path: str) -> str | None:
+            try:
+                with open(file_path, "rb") as fh:
+                    sample = fh.read(8192)
+                result = chardet.detect(sample)
+                return result.get("encoding") if result else None
+            except Exception:
+                return None
+
         for root, _, files in os.walk(directory):
             for name in files:
-                if name.lower().endswith(".csv"):
-                    path = os.path.join(root, name)
-                    try:
-                        with open(path, "r", encoding=src_enc, errors="ignore") as f:
-                            data = f.read()
-                        with open(path, "w", encoding=dst_enc) as f:
-                            f.write(data)
-                        print(f"Converted: {path}")
-                    except Exception as e:
-                        print(f"Failed to convert {path}: {e}")
+                if not name.lower().endswith(".csv"):
+                    continue
+                path = os.path.join(root, name)
+                detected = _detect_encoding(path)
+                if detected and detected.lower().startswith("utf-8"):
+                    print(f"Skipping (already UTF-8): {path}")
+                    continue
+                if detected and not any(key in detected.lower() for key in ["shift", "sjis", "cp932", "ms932"]):
+                    print(f"Skipping (encoding {detected}): {path}")
+                    continue
+                try:
+                    with open(path, "r", encoding=src_enc, errors="strict") as f:
+                        data = f.read()
+                    with open(path, "w", encoding=dst_enc) as f:
+                        f.write(data)
+                    print(f"Converted: {path}")
+                except UnicodeDecodeError:
+                    print(f"Skipping (failed to decode as {src_enc}): {path}")
+                except Exception as e:
+                    print(f"Failed to convert {path}: {e}")
 
     def close_session(self):
         if self.browser:
