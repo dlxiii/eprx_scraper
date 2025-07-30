@@ -4,6 +4,7 @@ import urllib3
 from urllib.parse import urljoin
 from datetime import date
 from playwright.sync_api import sync_playwright
+from bs4 import BeautifulSoup
 
 BASE_URL = "https://www.eprx.or.jp/information/"
 RESULTS_PAGE = urljoin(BASE_URL, "results.php")
@@ -18,6 +19,17 @@ class EPRX:
         self.browser = None
         self.playwright = None
         self.page = None
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        self.session = requests.Session()
+        self.session.headers.update(
+            {
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/134.0.0.0 Safari/537.36"
+                )
+            }
+        )
 
     def _launch_browser(self, playwright, debug: bool = False):
         browser = playwright.chromium.launch(
@@ -117,6 +129,72 @@ class EPRX:
             print(f"Navigated to: {self.page.url}")
         return self.page
 
+    # ----- Direct download methods -----
+
+    def fetch_results_page(self) -> str:
+        """Return HTML of the results page."""
+        r = self.session.get(self.results_page, verify=False)
+        r.raise_for_status()
+        return r.text
+
+    def parse_links(self, html: str, year: str | None = None, report_type: str = "final") -> list[str]:
+        """Parse ZIP file links from HTML."""
+        table_title = (
+            "取引結果・連系線確保量結果ダウンロード（確報値）"
+            if report_type == "final"
+            else "取引結果・連系線確保量結果ダウンロード（速報値）"
+        )
+        soup = BeautifulSoup(html, "html.parser")
+        section_title = soup.find("h2", string=table_title)
+        if not section_title:
+            return []
+        table = section_title.find_next("table")
+        if not table:
+            return []
+        links: list[str] = []
+        for tr in table.find_all("tr"):
+            yr = tr.find("th", scope="row")
+            if yr:
+                yr_text = yr.get_text(strip=True).replace("年度", "")
+                if year and yr_text != year:
+                    continue
+            for a in tr.find_all("a", href=True):
+                links.append(urljoin(self.base_url, a["href"]))
+        return links
+
+    def download_files(self, links: list[str], out_dir: str = "zip", overwrite: bool = True) -> None:
+        os.makedirs(out_dir, exist_ok=True)
+        for url in links:
+            filename = os.path.join(out_dir, os.path.basename(url))
+            if os.path.exists(filename) and not overwrite:
+                print(f"File exists, skipping: {filename}")
+                continue
+            try:
+                r = self.session.get(url, verify=False)
+                if r.ok and len(r.content) > 100:
+                    with open(filename, "wb") as f:
+                        f.write(r.content)
+                    print(f"Downloaded: {filename}")
+                else:
+                    print(f"Failed to download: {url}")
+            except Exception as exc:
+                print(f"Error downloading {url}: {exc}")
+
+    def results_direct(self, debug: bool = False, year: int | None = None, report_type: str = "final") -> None:
+        """Directly download result ZIP files without using Playwright."""
+        if year is None:
+            year = date.today().year
+        try:
+            html = self.fetch_results_page()
+        except Exception as exc:
+            print(f"Failed to fetch results page: {exc}")
+            return
+        links = self.parse_links(html, str(year), report_type)
+        if not links:
+            print("No links found.")
+            return
+        self.download_files(links)
+
     def _download_year_zips(self, year: str) -> None:
         """Download all ZIP files listed for the specified year."""
         links = self.page.locator('a[href$=".zip"]')
@@ -142,7 +220,7 @@ class EPRX:
 
 def main():
     scraper = EPRX()
-    scraper.results(debug=True, year=date.today().year, report_type="final")
+    scraper.results_direct(debug=True, year=date.today().year, report_type="final")
     scraper.close_session()
 
 
