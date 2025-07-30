@@ -2,6 +2,7 @@ import os
 import requests
 import urllib3
 from urllib.parse import urljoin
+from datetime import date
 from playwright.sync_api import sync_playwright
 
 BASE_URL = "https://www.eprx.or.jp/information/"
@@ -83,9 +84,18 @@ class EPRX:
             self.page.locator('input[type="submit"][name="submit"]').click()
             self.page.wait_for_load_state("networkidle")
 
-    def results(self, debug: bool = False):
-        """Navigate to the results page for manual inspection."""
-        self._navigate_results_page("", debug, accept_downloads=True, item="results")
+        if date:
+            try:
+                self.page.get_by_role("link", name=f"{date}年度").click()
+            except Exception:
+                self.page.locator(f'text="{date}年度"').first.click()
+            self.page.wait_for_load_state("networkidle")
+
+    def results(self, debug: bool = False, year: int | None = None):
+        """Navigate to the results page for a specific year."""
+        if year is None:
+            year = date.today().year
+        self._navigate_results_page(str(year), debug, accept_downloads=True, item="results")
         if debug:
             print(f"Navigated to: {self.page.url}")
         return self.page
@@ -99,7 +109,7 @@ class EPRX:
 
 def main():
     scraper = EPRX()
-    scraper.results(debug=True)
+    scraper.results(debug=True, year=date.today().year)
     scraper.close_session()
 
 
