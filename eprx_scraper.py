@@ -74,41 +74,12 @@ class EPRX:
             self.page.goto(self.results_page)
         self.page.wait_for_load_state("networkidle")
 
-    def trading_results(self, debug: bool = False):
+    def results(self, debug: bool = False):
+        """Navigate to the results page for manual inspection."""
         self._navigate_results_page("", debug, accept_downloads=False)
-        data = []
-
-        tables = self.page.query_selector_all("table")
-        target_table = None
-        for table in tables:
-            caption = table.query_selector("caption")
-            if caption and "取引結果" in caption.inner_text():
-                target_table = table
-                break
-        if not target_table and tables:
-            target_table = tables[0]
-
-        if target_table:
-            header_cells = target_table.query_selector_all("tr:nth-of-type(2) th")[1:]
-            products = [cell.inner_text().strip() for cell in header_cells]
-            rows = target_table.query_selector_all("tr")[2:]
-            for row in rows:
-                cells = row.query_selector_all("td")
-                if not cells:
-                    continue
-                year = cells[0].inner_text().strip()
-                for idx, cell in enumerate(cells[1:]):
-                    link = cell.query_selector("a[href$='.zip']")
-                    if link:
-                        href = link.get_attribute("href")
-                        data.append(
-                            {
-                                "year": year,
-                                "product": products[idx] if idx < len(products) else f"column{idx+1}",
-                                "url": urljoin(self.results_page, href),
-                            }
-                        )
-        return data
+        if debug:
+            print(f"Navigated to: {self.page.url}")
+        return self.page
 
     def close_session(self):
         if self.browser:
@@ -119,8 +90,7 @@ class EPRX:
 
 def main():
     scraper = EPRX()
-    for item in scraper.trading_results():
-        print(f"{item['year']} {item['product']} {item['url']}")
+    scraper.results(debug=True)
     scraper.close_session()
 
 
