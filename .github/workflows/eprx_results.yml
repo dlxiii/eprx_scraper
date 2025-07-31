@@ -90,7 +90,7 @@ jobs:
           to: opendenki_data@googlegroups.com
           from: OpenDenki Bot <${{ secrets.SMTP_USERNAME }}>
           body: |
-            EPRX results scraping job for fiscal year ${FISCAL_YEAR} has completed successfully.
+            EPRX results scraping job for fiscal year ${{FISCAL_YEAR}} has completed successfully.
 
             Files have been:
             - Saved in the repository under zip/
