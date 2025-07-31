@@ -79,18 +79,37 @@ jobs:
           git commit -m "Auto sync EPRX results for ${FISCAL_YEAR}" || echo "No changes to commit"
           git push
 
-      - name: Prepare CDN file names
-        run: |
-          python - <<'PYTHON' >> "$GITHUB_ENV"
-          from datetime import datetime, timedelta
-          today = datetime.now()
-          year, month = today.year, today.month
-          prompt_file = f"{year}{month:02d}_1-0_prompt.csv"
-          prev_month = today - timedelta(days=30)
-          result_file = f"{prev_month.year}{prev_month.month:02d}_1-0_result.csv"
-          print(f"PROMPT_FILE={prompt_file}")
-          print(f"RESULT_FILE={result_file}")
-          PYTHON
+        - name: Prepare CDN file names
+          run: |
+            python - <<'PYTHON' >> "$GITHUB_ENV"
+            from datetime import date
+            import os
+
+            today = date.today()
+            version = "1-0"
+            fiscal_year = os.environ.get("FISCAL_YEAR", today.strftime("%Y"))
+
+            prompt_folder = f"{fiscal_year}_{version}_prompt"
+            result_folder = f"{fiscal_year}_{version}_result"
+
+            if today.month == 12:
+                next_year, next_month = today.year + 1, 1
+            else:
+                next_year, next_month = today.year, today.month + 1
+
+            if today.month == 1:
+                prev_year, prev_month = today.year - 1, 12
+            else:
+                prev_year, prev_month = today.year, today.month - 1
+
+            prompt_file = f"{next_year}{next_month:02d}_{version}_prompt.csv"
+            result_file = f"{prev_year}{prev_month:02d}_{version}_result.csv"
+
+            print(f"PROMPT_FOLDER={prompt_folder}")
+            print(f"RESULT_FOLDER={result_folder}")
+            print(f"PROMPT_FILE={prompt_file}")
+            print(f"RESULT_FILE={result_file}")
+            PYTHON
 
       - name: Send notification email
         uses: dawidd6/action-send-mail@v3
@@ -110,9 +129,13 @@ jobs:
             - Committed back to the manager's repository
             - Pushed to public repo [opendenki/eprx](https://github.com/opendenki/eprx)
 
+            jsDelivr CDN naming rules:
+            - Folders: yyyy_1-0_prompt or yyyy_1-0_result
+            - CSV files: yyyymm_1-0_prompt.csv (next month) or yyyymm_1-0_result.csv (previous month)
+
             jsDelivr CDN links:
-            - https://cdn.jsdelivr.net/gh/${{ github.repository }}@main/zip/${{ env.FISCAL_YEAR }}_1-0_prompt/${{ env.PROMPT_FILE }}
-            - https://cdn.jsdelivr.net/gh/${{ github.repository }}@main/zip/${{ env.FISCAL_YEAR }}_1-0_result/${{ env.RESULT_FILE }}
+            - https://cdn.jsdelivr.net/gh/${{ github.repository }}@main/zip/${{ env.PROMPT_FOLDER }}/${{ env.PROMPT_FILE }}
+            - https://cdn.jsdelivr.net/gh/${{ github.repository }}@main/zip/${{ env.RESULT_FOLDER }}/${{ env.RESULT_FILE }}
 
             📎 View workflow logs:
             ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
