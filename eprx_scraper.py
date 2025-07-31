@@ -142,7 +142,7 @@ class EPRX:
         # Extract the downloaded ZIP files and remove the archives
         self._extract_downloaded_zips("zip")
         # Convert extracted CSV files from Shift-JIS to UTF-8
-        self._convert_csv_encoding("zip")
+        self._convert_csv_encoding("zip", str(year))
         if debug:
             print(f"Navigated to: {self.page.url}")
         return self.page
@@ -269,20 +269,35 @@ class EPRX:
                 print(f"Failed to remove {path}: {e}")
 
     def _extract_downloaded_zips(self, directory: str = "zip") -> None:
-        """Extract all ZIP files in the given directory."""
+        """Extract all ZIP files in ``directory`` and flatten nested folders."""
         if not os.path.isdir(directory):
             return
         for filename in os.listdir(directory):
-            if filename.lower().endswith(".zip"):
-                self._extract_zip(os.path.join(directory, filename))
+            if not filename.lower().endswith(".zip"):
+                continue
+            path = os.path.join(directory, filename)
+            self._extract_zip(path)
+            extract_dir = os.path.splitext(path)[0]
+            base_name = os.path.basename(extract_dir)
+            nested = os.path.join(extract_dir, base_name)
+            if os.path.isdir(nested):
+                for item in os.listdir(nested):
+                    shutil.move(os.path.join(nested, item), os.path.join(extract_dir, item))
+                os.rmdir(nested)
 
     def _convert_csv_encoding(
-        self, directory: str = "zip", src_enc: str = "shift_jis", dst_enc: str = "utf-8"
+        self,
+        directory: str = "zip",
+        year: str | None = None,
+        src_enc: str = "shift_jis",
+        dst_enc: str = "utf-8",
     ) -> None:
         """Recursively convert CSV files from ``src_enc`` to ``dst_enc``.
 
-        Files already encoded in UTF-8 will be skipped to avoid double
-        conversion. Encoding detection is performed using ``chardet``.
+        When ``year`` is provided, only files or folders that start with the
+        given year prefix are processed. Files already encoded in UTF-8 will be
+        skipped to avoid double conversion. Encoding detection is performed
+        using ``chardet``.
         """
         if not os.path.isdir(directory):
             return
@@ -296,16 +311,24 @@ class EPRX:
             except Exception:
                 return None
 
-        for root, _, files in os.walk(directory):
+        for root, dirs, files in os.walk(directory):
+            if year:
+                dirs[:] = [d for d in dirs if d.startswith(year)]
             for name in files:
                 if not name.lower().endswith(".csv"):
+                    continue
+                if year and not (
+                    name.startswith(year) or os.path.basename(root).startswith(year)
+                ):
                     continue
                 path = os.path.join(root, name)
                 detected = _detect_encoding(path)
                 if detected and detected.lower().startswith("utf-8"):
                     print(f"Skipping (already UTF-8): {path}")
                     continue
-                if detected and not any(key in detected.lower() for key in ["shift", "sjis", "cp932", "ms932"]):
+                if detected and not any(
+                    key in detected.lower() for key in ["shift", "sjis", "cp932", "ms932"]
+                ):
                     print(f"Skipping (encoding {detected}): {path}")
                     continue
                 try:
