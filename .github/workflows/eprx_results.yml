@@ -5,8 +5,8 @@ on:
     - cron: '0 15 * * 6'  # JST 00:00 every Sunday
   workflow_dispatch:
 
-  permissions:
-    contents: write
+permissions:
+  contents: write
 
 jobs:
   scrape:
