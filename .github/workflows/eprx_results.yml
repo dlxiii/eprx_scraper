@@ -5,9 +5,9 @@ on:
     - cron: '0 15 * * 6'  # JST 00:00 every Sunday
   workflow_dispatch:
 
-permissions:
-  contents: write
-  
+  permissions:
+    contents: write
+
 jobs:
   scrape:
     runs-on: ubuntu-latest
@@ -44,12 +44,10 @@ jobs:
       - name: Calculate fiscal year
         id: fiscal_year
         run: |
-          FISCAL_YEAR=$(python - <<'PY'
-from datetime import date
-fy = date.today().year if date.today().month >= 4 else date.today().year - 1
-print(fy)
-PY
-)
+          FISCAL_YEAR=$(date '+%Y')
+          if [ $(date '+%m') -lt 4 ]; then
+            FISCAL_YEAR=$((FISCAL_YEAR - 1))
+          fi
           echo "FISCAL_YEAR=$FISCAL_YEAR" >> $GITHUB_ENV
           echo "Fiscal year: $FISCAL_YEAR"
 
