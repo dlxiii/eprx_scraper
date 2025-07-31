@@ -183,7 +183,7 @@ class EPRX:
         return links
 
     def download_files(
-        self, links: list[str], out_dir: str = "zip", overwrite: bool = True
+        self, links: list[str], out_dir: str = "zip", overwrite: bool = False
     ) -> None:
         os.makedirs(out_dir, exist_ok=True)
         for url in links:
@@ -219,7 +219,7 @@ class EPRX:
             return
         self.download_files(links)
 
-    def _download_year_zips(self, year: str) -> None:
+    def _download_year_zips(self, year: str, overwrite: bool = False) -> None:
         """Download all ZIP files listed for the specified year."""
         # Restrict search to the table row that corresponds to the target year
         row = self.page.locator(f'tr:has-text("{year}年度")')
@@ -228,10 +228,15 @@ class EPRX:
         os.makedirs("zip", exist_ok=True)
         for i in range(count):
             try:
+                href = links.nth(i).get_attribute("href") or ""
+                filename = os.path.basename(href)
+                out_path = os.path.join("zip", filename)
+                if os.path.exists(out_path) and not overwrite:
+                    print(f"File exists, skipping: {out_path}")
+                    continue
                 with self.page.expect_download() as download_info:
                     links.nth(i).click()
                 download = download_info.value
-                out_path = os.path.join("zip", download.suggested_filename)
                 download.save_as(out_path)
                 print(f"Downloaded: {out_path}")
             except Exception as e:
