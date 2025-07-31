@@ -79,6 +79,19 @@ jobs:
           git commit -m "Auto sync EPRX results for ${FISCAL_YEAR}" || echo "No changes to commit"
           git push
 
+      - name: Prepare CDN file names
+        run: |
+          python - <<'PYTHON' >> "$GITHUB_ENV"
+          from datetime import datetime, timedelta
+          today = datetime.now()
+          year, month = today.year, today.month
+          prompt_file = f"{year}{month:02d}_1-0_prompt.csv"
+          prev_month = today - timedelta(days=30)
+          result_file = f"{prev_month.year}{prev_month.month:02d}_1-0_result.csv"
+          print(f"PROMPT_FILE={prompt_file}")
+          print(f"RESULT_FILE={result_file}")
+          PYTHON
+
       - name: Send notification email
         uses: dawidd6/action-send-mail@v3
         with:
@@ -97,79 +110,9 @@ jobs:
             - Committed back to the manager's repository
             - Pushed to public repo [opendenki/eprx](https://github.com/opendenki/eprx)
 
-            jsDelivr CDN links for 2025 files:
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_1-0_prompt/202504_1-0_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_1-0_prompt/202505_1-0_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_1-0_prompt/202506_1-0_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_1-0_prompt/202507_1-0_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_1-0_prompt/202508_1-0_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_1-0_result/202504_1-0_result.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_1-0_result/202505_1-0_result.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_1-0_result/202506_1-0_result.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_1-1_prompt/202504_1-1_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_1-1_prompt/202505_1-1_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_1-1_prompt/202506_1-1_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_1-1_prompt/202507_1-1_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_1-1_prompt/202508_1-1_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_1-1_result/202504_1-1_result.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_1-1_result/202505_1-1_result.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_1-1_result/202506_1-1_result.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_2-1_prompt/202504_2-1_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_2-1_prompt/202505_2-1_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_2-1_prompt/202506_2-1_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_2-1_prompt/202507_2-1_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_2-1_prompt/202508_2-1_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_2-1_result/202504_2-1_result.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_2-1_result/202505_2-1_result.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_2-1_result/202506_2-1_result.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_2-2_prompt/202504_2-2_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_2-2_prompt/202505_2-2_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_2-2_prompt/202506_2-2_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_2-2_prompt/202507_2-2_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_2-2_prompt/202508_2-2_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_2-2_result/202504_2-2_result.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_2-2_result/202505_2-2_result.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_2-2_result/202506_2-2_result.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_3-1_prompt/202504_3-1_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_3-1_prompt/202505_3-1_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_3-1_prompt/202506_3-1_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_3-1_prompt/202507_3-1_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_3-1_prompt/202508_3-1_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_3-1_result/202504_3-1_result.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_3-1_result/202505_3-1_result.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_3-1_result/202506_3-1_result.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_3-2_prompt/202504_3-2_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_3-2_prompt/202505_3-2_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_3-2_prompt/202506_3-2_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_3-2_prompt/202507_3-2_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_3-2_prompt/202508_3-2_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_3-2_result/202504_3-2_result.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_3-2_result/202505_3-2_result.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_3-2_result/202506_3-2_result.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_4-0_prompt/202504_4-0_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_4-0_prompt/202505_4-0_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_4-0_prompt/202506_4-0_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_4-0_prompt/202507_4-0_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_4-0_prompt/202508_4-0_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_4-0_result/202504_4-0_result.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_4-0_result/202505_4-0_result.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_4-0_result/202506_4-0_result.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_tieline_daily_prompt/202504_tieline_daily_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_tieline_daily_prompt/202505_tieline_daily_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_tieline_daily_prompt/202506_tieline_daily_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_tieline_daily_prompt/202507_tieline_daily_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_tieline_daily_prompt/202508_tieline_daily_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_tieline_daily_result/202504_tieline_daily_result.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_tieline_daily_result/202505_tieline_daily_result.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_tieline_daily_result/202506_tieline_daily_result.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_tieline_weekly_prompt/202504_tieline_weekly_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_tieline_weekly_prompt/202505_tieline_weekly_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_tieline_weekly_prompt/202506_tieline_weekly_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_tieline_weekly_prompt/202507_tieline_weekly_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_tieline_weekly_prompt/202508_tieline_weekly_prompt.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_tieline_weekly_result/202504_tieline_weekly_result.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_tieline_weekly_result/202505_tieline_weekly_result.csv
-            - https://cdn.jsdelivr.net/gh/dlxiii/eprx_scraper@main/zip/2025_tieline_weekly_result/202506_tieline_weekly_result.csv
+            jsDelivr CDN links:
+            - https://cdn.jsdelivr.net/gh/${{ github.repository }}@main/zip/${{ env.FISCAL_YEAR }}_1-0_prompt/${{ env.PROMPT_FILE }}
+            - https://cdn.jsdelivr.net/gh/${{ github.repository }}@main/zip/${{ env.FISCAL_YEAR }}_1-0_result/${{ env.RESULT_FILE }}
 
             📎 View workflow logs:
             ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
